@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "CP: Archive accepted solution",
+      "type": "shell",
+      "command": "python",
+      "args": ["${workspaceFolder}/tools/archive_solution.py"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "CP: Archive and push accepted solution",
+      "type": "shell",
+      "command": "python",
+      "args": ["${workspaceFolder}/tools/archive_solution.py", "--push"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
