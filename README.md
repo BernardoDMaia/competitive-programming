@@ -13,7 +13,7 @@ Solutions are organized by source:
 - `AtCoder/`
 - `Beecrowd/`
 - `ICPC/`
-- `Uncategorized/`
+- `Study/USACO-Guide/` for unresolved study material that came from USACO Guide rather than a confirmed platform
 
 ## VS Code workflow
 
@@ -28,21 +28,37 @@ This repository includes local automation in `tools/` and VS Code tasks in `.vsc
 5. Inform the source platform, problem identifier and solution file.
 6. The script copies the solution into the correct folder and creates a standardized Git commit.
 
-For Codeforces, configure your handle once with the task `CP: Configure Codeforces handle`. The script then checks the public Codeforces API before archiving a solution. When an Accepted submission is found, its real submission timestamp is used as the Git author and committer date.
+For Codeforces, configure your handle once with `CP: Configure Codeforces handle`. When a matching Accepted submission is found, its real submission timestamp is used as the Git author and committer date.
 
-### Historical solutions
+### Multi-folder historical import
 
-Older folders can be imported with `tools/import_history.py` or the VS Code tasks:
+Old solutions do not need to be manually reorganized first. Configure all source folders once with:
 
-- `CP: Preview historical import`
-- `CP: Import historical solutions`
+- `CP: Configure historical folders`
 
-The importer scans old source files recursively and creates one commit per solution.
+Then run:
 
-- **Codeforces:** when the problem can be identified, the first Accepted submission timestamp from the Codeforces API is used.
-- **Other platforms:** the local file modification timestamp is used as a fallback and is clearly shown in the preview before any commit is created.
+- `CP: Preview all historical solutions`
+- `CP: Import previewed historical solutions`
 
-This keeps the public history tied to real evidence instead of invented dates.
+The scanner combines multiple folder trees while deliberately ignoring the name of each root folder. This means a root named `Treinamento Codeforces` can safely contain AtCoder, CSES, ICPC, USACO Guide and other material.
+
+Recognition uses explicit subfolders, contest names, Codeforces IDs, exact title matches against the user's Accepted Codeforces history, the public CSES problem catalog, and conservative heuristics for contest files such as `A.cpp` or `B.cpp`.
+
+Every candidate receives a confidence/status label:
+
+- `HIGH` — reliable match;
+- `MEDIUM` — useful but should be reviewed;
+- `UNRESOLVED` — not imported automatically;
+- `DUPLICATE` — identical source already found in another configured folder;
+- `ALREADY-TRACKED` — identical source code is already in this repository.
+
+Preview never creates commits. The importer only acts on the saved preview plan and asks for explicit confirmation first.
+
+For dates:
+
+- **Codeforces:** matched problems use the real first-Accepted timestamp from the Codeforces API.
+- **Other platforms:** the local file modification timestamp is used as a clearly identified fallback unless a better source is available.
 
 ### Commit convention
 
@@ -50,8 +66,9 @@ Examples:
 
 ```text
 solve(codeforces): 2060A
-solve(cses): Tree Matching
+solve(cses): 1076
 solve(usaco): Lights Out
+solve(icpc): A
 add(template): dijkstra
 ```
 
