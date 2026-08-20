@@ -2,6 +2,16 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "CP: Configure Codeforces handle",
+      "type": "shell",
+      "command": "python",
+      "args": ["${workspaceFolder}/tools/setup_codeforces.py"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "CP: Archive accepted solution",
       "type": "shell",
       "command": "python",
@@ -16,6 +26,26 @@
       "type": "shell",
       "command": "python",
       "args": ["${workspaceFolder}/tools/archive_solution.py", "--push"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "CP: Preview historical import",
+      "type": "shell",
+      "command": "python",
+      "args": ["${workspaceFolder}/tools/import_history.py", "--preview"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "CP: Import historical solutions",
+      "type": "shell",
+      "command": "python",
+      "args": ["${workspaceFolder}/tools/import_history.py"],
       "options": {
         "cwd": "${workspaceFolder}"
       },
