@@ -6,9 +6,15 @@
       "type": "shell",
       "command": "python",
       "args": ["${workspaceFolder}/tools/setup_codeforces.py"],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": []
+    },
+    {
+      "label": "CP: Configure historical folders",
+      "type": "shell",
+      "command": "python",
+      "args": ["${workspaceFolder}/tools/import_history.py", "--configure"],
+      "options": {"cwd": "${workspaceFolder}"},
       "problemMatcher": []
     },
     {
@@ -16,9 +22,7 @@
       "type": "shell",
       "command": "python",
       "args": ["${workspaceFolder}/tools/archive_solution.py"],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
+      "options": {"cwd": "${workspaceFolder}"},
       "problemMatcher": []
     },
     {
@@ -26,29 +30,23 @@
       "type": "shell",
       "command": "python",
       "args": ["${workspaceFolder}/tools/archive_solution.py", "--push"],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
+      "options": {"cwd": "${workspaceFolder}"},
       "problemMatcher": []
     },
     {
-      "label": "CP: Preview historical import",
+      "label": "CP: Preview all historical solutions",
       "type": "shell",
       "command": "python",
       "args": ["${workspaceFolder}/tools/import_history.py", "--preview"],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
+      "options": {"cwd": "${workspaceFolder}"},
       "problemMatcher": []
     },
     {
-      "label": "CP: Import historical solutions",
+      "label": "CP: Import previewed historical solutions",
       "type": "shell",
       "command": "python",
-      "args": ["${workspaceFolder}/tools/import_history.py"],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
+      "args": ["${workspaceFolder}/tools/import_history.py", "--import"],
+      "options": {"cwd": "${workspaceFolder}"},
       "problemMatcher": []
     }
   ]
