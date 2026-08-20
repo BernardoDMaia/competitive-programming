@@ -2,7 +2,7 @@
 
 ## 1. Update the local repository
 
-If you already cloned the repository, first pull the latest automation:
+If you already cloned the repository:
 
 ```powershell
 git status
@@ -34,7 +34,7 @@ git config user.name
 git config user.email
 ```
 
-The email should be associated with your GitHub account if you want the commits to count correctly in your contribution graph.
+The email should be associated with your GitHub account if you want the commits to appear correctly in your contribution graph.
 
 ## 3. Connect your Codeforces handle
 
@@ -45,53 +45,82 @@ In VS Code:
 3. Select `CP: Configure Codeforces handle`.
 4. Enter your Codeforces username.
 
-The script validates the handle through the public Codeforces API and stores it locally in `.cpconfig.json`. This file is ignored by Git.
+The handle is validated using the public Codeforces API and saved only in local `.cpconfig.json`.
 
 ## 4. Archive a new solved problem
 
-In VS Code:
+Use `CP: Archive accepted solution` or `CP: Archive and push accepted solution`.
 
-1. Press `Ctrl+Shift+P`.
-2. Search for `Tasks: Run Task`.
-3. Select `CP: Archive accepted solution`.
-4. Enter the platform, problem identifier/title and source-file path.
+For Codeforces, the automation checks your Accepted history and, when possible, uses the timestamp of your first Accepted submission as the Git author/committer date.
 
-For Codeforces, the automation checks for an Accepted submission. If found, the commit uses the real Accepted timestamp as `GIT_AUTHOR_DATE` and `GIT_COMMITTER_DATE`.
+## 5. Configure all old code folders
 
-The commit convention is:
+Run:
+
+`CP: Configure historical folders`
+
+Enter one source folder per line, for example:
 
 ```text
-solve(platform): problem
+C:\Users\Georgia\OneDrive\Área de Trabalho\MARATONASBC
+C:\Users\Georgia\...\Treinamento Codeforces
 ```
 
-To publish immediately, select `CP: Archive and push accepted solution` instead.
+Press Enter on an empty line to finish.
 
-## 5. Import old folders and contests
+Important: the name of the root folder is ignored for platform detection. A folder named `Treinamento Codeforces` may contain AtCoder, CSES, ICPC, USACO Guide and other material without all of it being classified as Codeforces.
 
-First run:
+The configured paths are stored only in local `.cpconfig.json`.
 
-`CP: Preview historical import`
+## 6. Preview the combined historical import
 
-Enter the folder containing your old solutions. The script scans source files recursively and shows which platform, destination and date would be used.
+Run:
 
-For Codeforces, when a contest/problem ID can be inferred, the date comes from your first Accepted submission in the Codeforces API. For other platforms, the local file modification time is used as a fallback.
+`CP: Preview all historical solutions`
+
+The scanner walks every configured folder recursively and combines them into one preview.
+
+Detection uses, in order, reliable signals such as:
+
+- explicit subfolders (`atcoder`, `cses`, `codeforces`, `obi`, `beecrowd`, `usaco`);
+- ICPC-style contest folders (`NWERC25`, `SWERC26`, `NAQ2024`, `sub2024`, `maratonamineira`);
+- direct Codeforces IDs such as `2060A.cpp`;
+- exact problem-title matches against your Accepted Codeforces history, so files such as `checkTranscription.cpp` can be recognized;
+- exact title matches against the public CSES problem catalog, so files such as `findingperiods.cpp` can be recognized;
+- a cautious Codeforces heuristic for generic `A.cpp`, `B.cpp`, etc. only when the contest folder strongly suggests Codeforces and there is one nearby Accepted submission;
+- `usacoguide` is treated as a study collection rather than automatically pretending every file came from USACO.
+
+Each result is labeled `HIGH`, `MEDIUM`, `UNRESOLVED`, `DUPLICATE`, or `ALREADY-TRACKED`.
+
+Nothing is copied or committed during preview. The plan is saved locally in `.cp-import-plan.json`, which is ignored by Git.
+
+## 7. Import only after reviewing the preview
 
 If the preview looks correct, run:
 
-`CP: Import historical solutions`
+`CP: Import previewed historical solutions`
 
-The script asks for confirmation before creating commits. After reviewing the result, publish them with:
+The importer uses the exact previewed plan and requires you to type `IMPORT` before creating commits.
 
-```powershell
-git push
-```
+- `READY` items are imported.
+- `UNRESOLVED`, `DUPLICATE`, and `ALREADY-TRACKED` items are skipped.
+- Codeforces items use the real first-Accepted timestamp whenever matched.
+- Other platforms use the file modification date as a clearly identified fallback unless a better source is available.
 
-You can inspect the dates first with:
+Then inspect the local history:
 
 ```powershell
 git log --date=iso --pretty=format:"%h %ad %s"
 ```
 
-## 6. Recommended workflow
+Only after checking it, publish with:
 
-During contests or practice sessions, keep temporary files outside the repository or in a separate working folder. Archive only accepted/final solutions. This keeps the public repository clean and makes the Git history useful as a study log.
+```powershell
+git push
+```
+
+## 8. Recommended workflow
+
+Keep your original study folders exactly as they are. The importer copies recognized final solutions into this repository; it does not reorganize or delete your original files.
+
+For ambiguous files, prefer leaving them `UNRESOLVED` and handling them later instead of guessing a platform and polluting the public repository.
