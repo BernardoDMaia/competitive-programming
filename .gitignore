@@ -1,3 +1,4 @@
 .cpconfig.json
+.cp-import-plan.json
 __pycache__/
 *.pyc
