@@ -17,18 +17,32 @@ Solutions are organized by source:
 
 ## VS Code workflow
 
-This repository includes a small local automation in `tools/archive_solution.py` and VS Code tasks in `.vscode/tasks.json`.
+This repository includes local automation in `tools/` and VS Code tasks in `.vscode/tasks.json`.
 
-The intended workflow is:
+### Daily workflow
 
 1. Solve a problem locally.
 2. Confirm the solution was accepted.
 3. Run **Tasks: Run Task** in VS Code.
-4. Choose `CP: Archive accepted solution`.
+4. Choose `CP: Archive accepted solution` or `CP: Archive and push accepted solution`.
 5. Inform the source platform, problem identifier and solution file.
-6. The script copies the solution into the correct folder and prepares a standardized Git commit.
+6. The script copies the solution into the correct folder and creates a standardized Git commit.
 
-For Codeforces, you can optionally set the environment variable `CODEFORCES_HANDLE`; the script will check your recent submissions through the public Codeforces API before archiving the file.
+For Codeforces, configure your handle once with the task `CP: Configure Codeforces handle`. The script then checks the public Codeforces API before archiving a solution. When an Accepted submission is found, its real submission timestamp is used as the Git author and committer date.
+
+### Historical solutions
+
+Older folders can be imported with `tools/import_history.py` or the VS Code tasks:
+
+- `CP: Preview historical import`
+- `CP: Import historical solutions`
+
+The importer scans old source files recursively and creates one commit per solution.
+
+- **Codeforces:** when the problem can be identified, the first Accepted submission timestamp from the Codeforces API is used.
+- **Other platforms:** the local file modification timestamp is used as a fallback and is clearly shown in the preview before any commit is created.
+
+This keeps the public history tied to real evidence instead of invented dates.
 
 ### Commit convention
 
