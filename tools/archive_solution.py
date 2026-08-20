@@ -2,14 +2,18 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+CONFIG_FILE = ROOT / ".cpconfig.json"
+
 PLATFORMS = {
     "codeforces": "Codeforces",
     "cf": "Codeforces",
@@ -22,8 +26,22 @@ PLATFORMS = {
 }
 
 
-def run(*args: str) -> None:
-    subprocess.run(args, cwd=ROOT, check=True)
+def run(*args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess:
+    return subprocess.run(args, cwd=ROOT, check=True, env=env)
+
+
+def load_config() -> dict:
+    config: dict = {}
+    if CONFIG_FILE.is_file():
+        try:
+            config = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    env_handle = os.getenv("CODEFORCES_HANDLE", "").strip()
+    if env_handle:
+        config["codeforces_handle"] = env_handle
+    return config
 
 
 def normalize_platform(raw: str) -> str:
@@ -31,28 +49,33 @@ def normalize_platform(raw: str) -> str:
     return PLATFORMS.get(key, raw.strip() or "Uncategorized")
 
 
-def codeforces_accepted(handle: str, problem_id: str) -> bool:
-    problem_id = problem_id.strip().upper()
-    digits = "".join(ch for ch in problem_id if ch.isdigit())
-    suffix = problem_id[len(digits):]
-    if not digits or not suffix:
-        return False
+def parse_codeforces_problem_id(problem_id: str) -> tuple[int, str] | None:
+    match = re.fullmatch(r"(\d+)([A-Za-z][A-Za-z0-9]*)", problem_id.strip())
+    if not match:
+        return None
+    return int(match.group(1)), match.group(2).upper()
 
-    params = urllib.parse.urlencode({"handle": handle, "from": 1, "count": 100})
+
+def codeforces_accepted(handle: str, problem_id: str) -> tuple[bool, datetime | None]:
+    parsed = parse_codeforces_problem_id(problem_id)
+    if not parsed:
+        return False, None
+
+    contest_id, index = parsed
+    params = urllib.parse.urlencode({"handle": handle, "from": 1, "count": 1000})
     url = f"https://codeforces.com/api/user.status?{params}"
 
     try:
-        with urllib.request.urlopen(url, timeout=8) as response:
+        with urllib.request.urlopen(url, timeout=10) as response:
             data = json.load(response)
     except Exception as exc:
         print(f"Warning: could not verify Codeforces submission: {exc}")
-        return False
+        return False, None
 
     if data.get("status") != "OK":
-        return False
+        return False, None
 
-    contest_id = int(digits)
-    index = suffix
+    matches = []
     for submission in data.get("result", []):
         problem = submission.get("problem", {})
         if (
@@ -60,26 +83,57 @@ def codeforces_accepted(handle: str, problem_id: str) -> bool:
             and problem.get("contestId") == contest_id
             and str(problem.get("index", "")).upper() == index
         ):
-            return True
-    return False
+            matches.append(submission)
+
+    if not matches:
+        return False, None
+
+    # Use the first Accepted chronologically for an honest training history.
+    accepted = min(matches, key=lambda item: item.get("creationTimeSeconds", 0))
+    timestamp = accepted.get("creationTimeSeconds")
+    if not timestamp:
+        return True, None
+
+    return True, datetime.fromtimestamp(timestamp, tz=timezone.utc)
 
 
 def choose_destination(platform: str, problem_id: str, source: Path) -> Path:
     if platform == "USACO":
         contest = input("Contest folder (e.g. 2016-January-Gold): ").strip()
         folder = ROOT / platform / (contest or "Uncategorized")
+    elif platform == "Codeforces":
+        parsed = parse_codeforces_problem_id(problem_id)
+        folder = ROOT / platform / (str(parsed[0]) if parsed else "Uncategorized")
     else:
         folder = ROOT / platform
 
     folder.mkdir(parents=True, exist_ok=True)
+
     safe_name = source.name
     if problem_id and source.stem.lower() in {"main", "solution", "a", "temp"}:
         safe_name = f"{problem_id}{source.suffix}"
     return folder / safe_name
 
 
+def git_commit(relative: Path, message: str, commit_date: datetime | None = None) -> bool:
+    run("git", "add", str(relative))
+
+    env = os.environ.copy()
+    if commit_date is not None:
+        iso_date = commit_date.isoformat()
+        env["GIT_AUTHOR_DATE"] = iso_date
+        env["GIT_COMMITTER_DATE"] = iso_date
+
+    try:
+        run("git", "commit", "-m", message, env=env)
+    except subprocess.CalledProcessError:
+        print("No commit was created (the file may be unchanged).")
+        return False
+    return True
+
+
 def main() -> None:
-    print("Competitive Programming — Archive Accepted Solution")
+    print("Competitive Programming - Archive Accepted Solution")
     platform = normalize_platform(input("Platform: "))
     problem_id = input("Problem id/title: ").strip()
     source_raw = input("Solution file path: ").strip().strip('"')
@@ -88,18 +142,26 @@ def main() -> None:
     if not source.is_file():
         raise SystemExit(f"File not found: {source}")
 
+    commit_date: datetime | None = None
+
     if platform == "Codeforces":
-        handle = os.getenv("CODEFORCES_HANDLE", "").strip()
+        config = load_config()
+        handle = str(config.get("codeforces_handle", "")).strip()
         if handle:
-            print(f"Checking recent submissions for {handle}...")
-            if not codeforces_accepted(handle, problem_id):
+            print(f"Checking Accepted submissions for {handle}...")
+            accepted, accepted_at = codeforces_accepted(handle, problem_id)
+            if not accepted:
                 answer = input("Accepted submission was not found. Archive anyway? [y/N]: ").strip().lower()
                 if answer != "y":
                     raise SystemExit("Cancelled.")
             else:
                 print("Accepted submission found.")
+                if accepted_at:
+                    commit_date = accepted_at
+                    print(f"Commit date: {accepted_at.astimezone().isoformat(timespec='seconds')}")
         else:
-            print("Tip: set CODEFORCES_HANDLE to enable automatic Accepted verification.")
+            print("Codeforces handle is not configured.")
+            print("Run the VS Code task 'CP: Configure Codeforces handle' once.")
 
     destination = choose_destination(platform, problem_id, source)
     shutil.copy2(source, destination)
@@ -107,16 +169,13 @@ def main() -> None:
     relative = destination.relative_to(ROOT)
     print(f"Archived: {relative}")
 
-    run("git", "add", str(relative))
     commit_label = problem_id or destination.stem
     message = f"solve({platform.lower()}): {commit_label}"
 
-    try:
-        run("git", "commit", "-m", message)
-        print(f"Commit created: {message}")
-    except subprocess.CalledProcessError:
-        print("No commit was created (the file may be unchanged).")
+    if not git_commit(relative, message, commit_date):
         return
+
+    print(f"Commit created: {message}")
 
     if "--push" in sys.argv:
         run("git", "push")
