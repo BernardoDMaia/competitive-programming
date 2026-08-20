@@ -13,7 +13,7 @@
       "label": "CP: Configure historical folders",
       "type": "shell",
       "command": "python",
-      "args": ["${workspaceFolder}/tools/import_history.py", "--configure"],
+      "args": ["${workspaceFolder}/tools/import_history_v2.py", "--configure"],
       "options": {"cwd": "${workspaceFolder}"},
       "problemMatcher": []
     },
@@ -37,7 +37,7 @@
       "label": "CP: Preview all historical solutions",
       "type": "shell",
       "command": "python",
-      "args": ["${workspaceFolder}/tools/import_history.py", "--preview"],
+      "args": ["${workspaceFolder}/tools/import_history_v2.py", "--preview"],
       "options": {"cwd": "${workspaceFolder}"},
       "problemMatcher": []
     },
@@ -45,7 +45,7 @@
       "label": "CP: Import previewed historical solutions",
       "type": "shell",
       "command": "python",
-      "args": ["${workspaceFolder}/tools/import_history.py", "--import"],
+      "args": ["${workspaceFolder}/tools/import_history_v2.py", "--import"],
       "options": {"cwd": "${workspaceFolder}"},
       "problemMatcher": []
     }
