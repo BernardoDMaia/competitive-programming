@@ -9,6 +9,15 @@ ROOT = Path(__file__).resolve().parents[1]
 CONFIG_FILE = ROOT / ".cpconfig.json"
 
 
+def load_config() -> dict:
+    if not CONFIG_FILE.is_file():
+        return {}
+    try:
+        return json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
 def validate_handle(handle: str) -> bool:
     params = urllib.parse.urlencode({"handles": handle})
     url = f"https://codeforces.com/api/user.info?{params}"
@@ -31,13 +40,16 @@ def main() -> None:
     if not validate_handle(handle):
         raise SystemExit("Handle not found or Codeforces API unavailable.")
 
+    config = load_config()
+    config["codeforces_handle"] = handle
     CONFIG_FILE.write_text(
-        json.dumps({"codeforces_handle": handle}, indent=2) + "\n",
+        json.dumps(config, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
 
     print(f"Saved locally: {CONFIG_FILE.name}")
     print(f"Codeforces handle configured: {handle}")
+    print("Existing local automation settings were preserved.")
     print("This file is ignored by Git and will not be published.")
 
 

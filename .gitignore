@@ -1,6 +1,9 @@
 .cpconfig.json
 .cp-import-plan.json
+.cp-watcher-state.json
+.cp-codeforces-watcher.lock
 **/.cph/
+*.prob
 *.exe
 *.out
 __pycache__/

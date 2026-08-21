@@ -10,6 +10,33 @@
       "problemMatcher": []
     },
     {
+      "label": "CP: Configure weekly push",
+      "type": "shell",
+      "command": "python",
+      "args": ["${workspaceFolder}/tools/setup_daily_automation.py"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": []
+    },
+    {
+      "label": "CP: Codeforces Accepted watcher",
+      "type": "shell",
+      "command": "python",
+      "args": ["${workspaceFolder}/tools/codeforces_watcher.py"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "isBackground": true,
+      "problemMatcher": [],
+      "runOptions": {
+        "runOn": "folderOpen",
+        "instanceLimit": 1
+      },
+      "presentation": {
+        "reveal": "silent",
+        "panel": "dedicated",
+        "clear": false,
+        "showReuseMessage": false
+      }
+    },
+    {
       "label": "CP: Mark current problem accepted (non-Codeforces)",
       "type": "shell",
       "command": "python",
@@ -18,18 +45,18 @@
       "problemMatcher": []
     },
     {
-      "label": "CP: Finish current problem",
+      "label": "CP: Push pending solutions now",
       "type": "shell",
       "command": "python",
-      "args": ["${workspaceFolder}/tools/finish_current_problem.py", "${file}"],
+      "args": ["${workspaceFolder}/tools/weekly_push.py"],
       "options": {"cwd": "${workspaceFolder}"},
       "problemMatcher": []
     },
     {
-      "label": "CP: Finish current problem and push",
+      "label": "CP: Finish current problem (manual fallback)",
       "type": "shell",
       "command": "python",
-      "args": ["${workspaceFolder}/tools/finish_current_problem.py", "${file}", "--push"],
+      "args": ["${workspaceFolder}/tools/finish_current_problem.py", "${file}"],
       "options": {"cwd": "${workspaceFolder}"},
       "problemMatcher": []
     },
@@ -38,22 +65,6 @@
       "type": "shell",
       "command": "python",
       "args": ["${workspaceFolder}/tools/import_history_v2.py", "--configure"],
-      "options": {"cwd": "${workspaceFolder}"},
-      "problemMatcher": []
-    },
-    {
-      "label": "CP: Archive accepted solution",
-      "type": "shell",
-      "command": "python",
-      "args": ["${workspaceFolder}/tools/archive_solution.py"],
-      "options": {"cwd": "${workspaceFolder}"},
-      "problemMatcher": []
-    },
-    {
-      "label": "CP: Archive and push accepted solution",
-      "type": "shell",
-      "command": "python",
-      "args": ["${workspaceFolder}/tools/archive_solution.py", "--push"],
       "options": {"cwd": "${workspaceFolder}"},
       "problemMatcher": []
     },

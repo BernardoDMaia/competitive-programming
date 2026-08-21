@@ -1,25 +1,17 @@
 # Local setup — Windows + VS Code
 
-## 1. Update the local repository
-
-If you already cloned the repository:
+## 1. Update the repository
 
 ```powershell
 git status
 git pull
 ```
 
-If you have not cloned it yet:
-
-```powershell
-git clone https://github.com/BernardoDMaia/competitive-programming.git
-cd competitive-programming
-code .
-```
+Open the repository root in VS Code.
 
 ## 2. Requirements
 
-Make sure these commands work in the VS Code terminal:
+These commands should work in the VS Code terminal:
 
 ```powershell
 python --version
@@ -27,54 +19,91 @@ git --version
 g++ --version
 ```
 
-Also check the Git identity used for commits:
+Check the Git identity as well:
 
 ```powershell
 git config user.name
 git config user.email
 ```
 
-The email should be associated with your GitHub account if you want the commits to appear correctly in your contribution graph.
+The email should be associated with your GitHub account.
 
 ## 3. Competitive Companion + CPH
 
 Install Competitive Companion in the browser and Competitive Programming Helper (CPH) in VS Code.
 
-Open the repository root in VS Code. When you send a problem from the browser, CPH creates the source file in the workspace and stores its problem metadata in a `.cph` directory. These metadata files are ignored by Git.
+When a problem is sent from the browser, CPH creates the source file and local `.prob` metadata under `.cph/`. Those metadata files are ignored by Git but are used by the automation to recover the problem URL and destination.
 
-Recommended daily flow:
+## 4. Configure Codeforces once
 
-1. Send the problem with Competitive Companion.
-2. Solve it in the file opened by CPH.
-3. Run sample tests with `Ctrl+Alt+B`.
-4. Submit the solution to the platform.
-5. After Accepted, keep the solution file active.
+Run:
 
-### Non-Codeforces Accepted shortcut
+`Ctrl+Shift+P` → `Tasks: Run Task` → `CP: Configure Codeforces handle`
 
-For AtCoder, CSES, USACO, OBI, Beecrowd, SPOJ, Kattis and other non-Codeforces sources, run:
+Enter your Codeforces handle. It is validated through the public Codeforces API and saved only in `.cpconfig.json`.
+
+## 5. Configure the weekly push once
+
+Run:
+
+`Ctrl+Shift+P` → `Tasks: Run Task` → `CP: Configure weekly push`
+
+Choose the weekday and time. Defaults are Sunday at 20:00.
+
+This only configures local behavior. Commits are pushed automatically by the watcher when the workspace is running. If VS Code was closed at the scheduled moment, the next workspace opening performs the overdue push.
+
+## 6. Allow the Codeforces watcher to start automatically
+
+The task `CP: Codeforces Accepted watcher` is configured with `runOn: folderOpen`.
+
+The first time VS Code asks about automatic tasks, allow them for this trusted repository. If it does not prompt automatically, use:
+
+`Ctrl+Shift+P` → `Tasks: Manage Automatic Tasks in Folder` → allow automatic tasks.
+
+You can also start it manually at any time:
+
+`Ctrl+Shift+P` → `Tasks: Run Task` → `CP: Codeforces Accepted watcher`
+
+Only one watcher instance is allowed at a time.
+
+## 7. Codeforces daily flow — no task after AC
+
+1. Open a Codeforces problem in the browser.
+2. Send it with Competitive Companion.
+3. Solve it in the file opened by CPH.
+4. Test with CPH (`Ctrl+Alt+B`).
+5. Submit to Codeforces.
+6. When Codeforces returns Accepted, do nothing else.
+
+Within about 45 seconds the watcher sees the Accepted submission, moves the file into:
+
+```text
+Codeforces/<contest>/<problem>.cpp
+```
+
+and creates a local commit such as:
+
+```text
+solve(codeforces): 2257F2
+```
+
+The commit uses the timestamp of the first Accepted submission on Codeforces.
+
+## 8. Non-Codeforces flow — one shortcut after AC
+
+For AtCoder, CSES, USACO, OBI, Beecrowd, SPOJ, Kattis and other sources, after the online judge returns Accepted keep the problem file active and run:
 
 `CP: Mark current problem accepted (non-Codeforces)`
 
-The command immediately:
+The command detects the platform from CPH metadata, moves the source, updates the CPH association and creates one local commit using the exact time you triggered the command.
 
-- reads the CPH metadata for the active file;
-- detects the platform/problem from the problem URL;
-- moves the source into the repository structure;
-- rewrites the CPH metadata for the new source path;
-- creates one local Git commit;
-- uses the exact time the command was triggered as author/committer date;
-- does **not** push.
+### Recommended keyboard shortcut
 
-The shortcut itself is treated as your confirmation that the judge returned Accepted.
-
-### Assign a keyboard shortcut
-
-VS Code task shortcuts are user-level settings. Open:
+Open:
 
 `Ctrl+Shift+P` → `Preferences: Open Keyboard Shortcuts (JSON)`
 
-Add an entry such as:
+Add:
 
 ```json
 {
@@ -84,92 +113,62 @@ Add an entry such as:
 }
 ```
 
-After that, with a CPH problem file active, `Ctrl+Alt+A` means: **this problem was Accepted; organize and commit it locally now**.
+After that, `Ctrl+Alt+A` means: **this non-Codeforces problem was Accepted; organize and commit it now**.
 
-If that shortcut conflicts with another command on your machine, choose another key combination.
+## 9. Weekly publishing
 
-## 4. Codeforces
+During the week, accepted solutions are committed locally but are not pushed immediately.
 
-Configure your handle once:
-
-1. Press `Ctrl+Shift+P`.
-2. Choose `Tasks: Run Task`.
-3. Select `CP: Configure Codeforces handle`.
-4. Enter your Codeforces username.
-
-The handle is validated using the public Codeforces API and saved only in local `.cpconfig.json`.
-
-The existing `CP: Finish current problem` task verifies Codeforces Accepted status and uses the first Accepted timestamp as the commit date.
-
-## 5. Pending commits and weekly publishing
-
-Every Accepted command creates a normal local Git commit. You can accumulate many during the week without pushing.
-
-Check how many are pending:
+Check pending commits:
 
 ```powershell
 git rev-list --count origin/main..HEAD
-```
-
-List them:
-
-```powershell
 git log origin/main..HEAD --oneline
 ```
 
-A later `git push origin main` publishes all pending commits at once while preserving each commit's own date.
+At the configured weekly time, the watcher automatically executes the equivalent of:
 
-## 6. Manual archive fallback
+```powershell
+git fetch origin main
+git push origin main
+```
 
-If a file was not created by Competitive Companion/CPH, use `CP: Archive accepted solution` or `CP: Archive and push accepted solution`.
+but only if local `main` is not behind `origin/main`.
 
-## 7. Configure all old code folders
+To publish early:
 
-Run:
+`CP: Push pending solutions now`
 
-`CP: Configure historical folders`
+## 10. Historical solutions
 
-Enter one source folder per line, for example:
+The existing historical importer remains available:
 
 ```text
-C:\Users\Georgia\OneDrive\Área de Trabalho\MARATONASBC
-C:\Users\Georgia\...\Treinamento Codeforces
+CP: Configure historical folders
+CP: Preview all historical solutions
+CP: Import previewed historical solutions
 ```
 
-Press Enter on an empty line to finish.
+Review the preview before importing old files.
 
-The configured paths are stored only in local `.cpconfig.json`.
+## 11. Recommended routine
 
-## 8. Preview the combined historical import
+Normal Codeforces session:
 
-Run:
-
-`CP: Preview all historical solutions`
-
-The scanner walks every configured folder recursively and combines them into one preview. It identifies platforms and contests conservatively, detects duplicates, and keeps ambiguous study material separated instead of guessing.
-
-Nothing is copied or committed during preview. The plan is saved locally in `.cp-import-plan.json`, which is ignored by Git.
-
-## 9. Import only after reviewing the preview
-
-If the preview looks correct, run:
-
-`CP: Import previewed historical solutions`
-
-The importer requires you to type `IMPORT` before creating commits.
-
-Then inspect the local history:
-
-```powershell
-git log --date=iso --pretty=format:"%h %ad %s"
+```text
+Competitive Companion → CPH → solve → submit → Accepted
+                                      ↓
+                           watcher organizes + commits
 ```
 
-Publish with:
+Other platforms:
 
-```powershell
-git push
+```text
+Competitive Companion → CPH → solve → submit → Accepted → Ctrl+Alt+A
 ```
 
-## 10. Recommended study organization
+Weekend:
 
-Use platform folders for completed problems and `Study/` for topic-based practice. Keep reusable snippets in `Templates/` and avoid committing temporary binaries or CPH metadata.
+```text
+pending local commits → automatic weekly push → GitHub
+```
