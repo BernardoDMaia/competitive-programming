@@ -25,12 +25,17 @@ This repository is configured to work with **Competitive Companion** in the brow
 
 1. Open the problem in the browser.
 2. Send it with Competitive Companion.
-3. CPH creates the temporary source file in the workspace and loads the sample tests.
+3. CPH creates the source file in the workspace and loads the sample tests.
 4. Solve and test with CPH (`Ctrl+Alt+B`).
-5. After the solution is accepted, keep that source file active and run:
-   - `CP: Finish current problem`, or
-   - `CP: Finish current problem and push`.
-6. The script reads the CPH `.prob` metadata, detects the platform and problem, moves the source to the correct folder, preserves the CPH metadata for the new path, creates a standardized Git commit and optionally pushes it.
+5. Submit the solution to the platform.
+
+For a **non-Codeforces** problem that receives Accepted, keep the source file active and run:
+
+- `CP: Mark current problem accepted (non-Codeforces)`
+
+That command is itself the Accepted confirmation: it reads the CPH metadata, detects the platform/problem, moves the source into the correct folder, preserves the CPH association and creates a **local commit using the exact time the command was triggered**. It does not push.
+
+This makes it possible to accumulate solved problems locally during the week and publish all pending commits together later with a single `git push`.
 
 Examples of automatic destinations:
 
@@ -43,14 +48,19 @@ Beecrowd/1001.cpp
 SPOJ/GCDEX.cpp
 ```
 
-### Commit dates
+### Codeforces
 
-- **Codeforces:** the script requires an Accepted submission for the configured handle and uses the timestamp of the first Accepted submission.
-- **Other platforms:** the source file modification timestamp is used.
+The existing `CP: Finish current problem` task verifies an Accepted submission for the configured Codeforces handle and uses the timestamp of the first Accepted submission as the commit date. The repository is structured so this verification can also be used by an automatic Accepted watcher.
 
 Configure the Codeforces handle once with:
 
 - `CP: Configure Codeforces handle`
+
+### Commit dates
+
+- **Codeforces:** first Accepted timestamp from the Codeforces API.
+- **Non-Codeforces manual Accepted command:** exact time the command/shortcut is triggered.
+- **Historical imports:** local file modification time when no better platform timestamp is available.
 
 ### Commit convention
 
