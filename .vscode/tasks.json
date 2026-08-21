@@ -10,6 +10,14 @@
       "problemMatcher": []
     },
     {
+      "label": "CP: Mark current problem accepted (non-Codeforces)",
+      "type": "shell",
+      "command": "python",
+      "args": ["${workspaceFolder}/tools/mark_current_accepted.py", "${file}"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": []
+    },
+    {
       "label": "CP: Finish current problem",
       "type": "shell",
       "command": "python",
