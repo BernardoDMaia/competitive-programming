@@ -1,68 +1,86 @@
 # Competitive Programming
 
-Repository for archiving my competitive programming solutions and documenting my progress in algorithms, data structures and problem solving.
+Repository for my competitive-programming solutions, study material and reusable templates.
 
 ## Platforms
 
-Solutions are organized by source:
+Completed solutions are organized by source:
 
 - `Codeforces/`
+- `AtCoder/`
 - `CSES/`
 - `USACO/`
 - `OBI/`
-- `AtCoder/`
 - `Beecrowd/`
-- `ICPC/`
 - `SPOJ/`
 - `Kattis/`
-- `Study/USACO-Guide/` for study material whose original platform is not confirmed
+- `ICPC/`
+- `Study/` for topic-based practice whose original platform is not confirmed
+- `Templates/` for reusable algorithms and data structures
 
-## VS Code + Competitive Companion + CPH workflow
+## Daily workflow: Competitive Companion + CPH + Git
 
-This repository is configured to work with **Competitive Companion** in the browser and **Competitive Programming Helper (CPH)** in VS Code.
+The repository is designed to work with **Competitive Companion** in the browser and **Competitive Programming Helper (CPH)** in VS Code.
 
-### Daily workflow
+### Codeforces — fully automatic after Accepted
 
-1. Open the problem in the browser.
-2. Send it with Competitive Companion.
-3. CPH creates the source file in the workspace and loads the sample tests.
-4. Solve and test with CPH (`Ctrl+Alt+B`).
-5. Submit the solution to the platform.
+1. Send a Codeforces problem to CPH with Competitive Companion.
+2. Solve and submit it normally.
+3. `CP: Codeforces Accepted watcher` runs in the background while this workspace is open.
+4. When the configured Codeforces account receives `Accepted`, the watcher automatically:
+   - detects the problem from CPH metadata;
+   - moves the source to `Codeforces/<contest>/<problem>.cpp`;
+   - keeps the CPH metadata associated with the moved file;
+   - creates one **local** Git commit;
+   - uses the timestamp of the **first Accepted submission** as the Git author/committer date.
+5. No immediate push is performed.
 
-For a **non-Codeforces** problem that receives Accepted, keep the source file active and run:
+Example:
+
+```text
+2257F2.cpp
+    -> Accepted detected
+    -> Codeforces/2257/2257F2.cpp
+    -> solve(codeforces): 2257F2
+```
+
+### Other platforms — one-key Accepted confirmation
+
+For AtCoder, CSES, USACO, OBI, Beecrowd, SPOJ, Kattis and other non-Codeforces problems, keep the CPH-created source file active and run:
 
 - `CP: Mark current problem accepted (non-Codeforces)`
 
-That command is itself the Accepted confirmation: it reads the CPH metadata, detects the platform/problem, moves the source into the correct folder, preserves the CPH association and creates a **local commit using the exact time the command was triggered**. It does not push.
+That command means **the judge returned Accepted**. It automatically detects the platform from CPH metadata, moves the source into the correct repository folder and creates a local commit using the **exact time the command was triggered**.
 
-This makes it possible to accumulate solved problems locally during the week and publish all pending commits together later with a single `git push`.
+A convenient VS Code user keybinding is:
 
-Examples of automatic destinations:
-
-```text
-Codeforces/2257/2257F2.cpp
-AtCoder/ABC463/D.cpp
-CSES/1076-Sliding-Window-Median.cpp
-USACO/2016-January-Gold/lights-out.cpp
-Beecrowd/1001.cpp
-SPOJ/GCDEX.cpp
+```json
+{
+  "key": "ctrl+alt+a",
+  "command": "workbench.action.tasks.runTask",
+  "args": "CP: Mark current problem accepted (non-Codeforces)"
+}
 ```
 
-### Codeforces
+### Weekly publishing
 
-The existing `CP: Finish current problem` task verifies an Accepted submission for the configured Codeforces handle and uses the timestamp of the first Accepted submission as the commit date. The repository is structured so this verification can also be used by an automatic Accepted watcher.
+Commits accumulate locally during the week. Configure the publication schedule once with:
 
-Configure the Codeforces handle once with:
+- `CP: Configure weekly push`
 
-- `CP: Configure Codeforces handle`
+The Codeforces watcher checks the schedule in the background. When the configured weekly time is due, it pushes every pending commit on local `main` to `origin/main`. If the workspace was closed at the scheduled time, the push is performed the next time the workspace is opened.
+
+The weekly publisher refuses to push if local `main` is behind `origin/main`.
+
+To publish early, run:
+
+- `CP: Push pending solutions now`
 
 ### Commit dates
 
-- **Codeforces:** first Accepted timestamp from the Codeforces API.
-- **Non-Codeforces manual Accepted command:** exact time the command/shortcut is triggered.
-- **Historical imports:** local file modification time when no better platform timestamp is available.
-
-### Commit convention
+- **Codeforces:** first Accepted timestamp returned by the Codeforces API.
+- **Other platforms:** exact time `CP: Mark current problem accepted` is triggered.
+- **Historical import:** file modification time when no better timestamp is available.
 
 Examples:
 
@@ -74,25 +92,29 @@ solve(usaco): 832
 solve(spoj): GCDEX
 ```
 
+## One-time setup
+
+See [`SETUP.md`](SETUP.md). The important tasks are:
+
+```text
+CP: Configure Codeforces handle
+CP: Configure weekly push
+CP: Codeforces Accepted watcher
+CP: Mark current problem accepted (non-Codeforces)
+CP: Push pending solutions now
+```
+
 ## Historical solutions
 
-Older folders can still be imported without manual reorganization.
+Older folders can be imported without manually reorganizing them first:
 
-Configure the folders once with:
+```text
+CP: Configure historical folders
+CP: Preview all historical solutions
+CP: Import previewed historical solutions
+```
 
-- `CP: Configure historical folders`
-
-Then run:
-
-- `CP: Preview all historical solutions`
-- `CP: Import previewed historical solutions`
-
-The scanner combines multiple folder trees, detects platforms and contests when possible, separates study material conservatively, detects duplicates, and previews everything before creating commits.
-
-For historical dates:
-
-- **Codeforces:** matched problems use the real first-Accepted timestamp from the Codeforces API.
-- **Other platforms:** the local file modification timestamp is used as a fallback.
+The importer combines multiple folder trees, detects platforms and contests conservatively, separates study material, detects duplicates and previews everything before creating commits.
 
 ## Featured solution
 
