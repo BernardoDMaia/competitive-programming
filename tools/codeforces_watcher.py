@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import shutil
 import subprocess
-import sys
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from archive_solution import load_config
@@ -26,6 +25,7 @@ from finish_current_problem import (
 STATE_FILE = ROOT / ".cp-watcher-state.json"
 LOCK_FILE = ROOT / ".cp-codeforces-watcher.lock"
 POLL_SECONDS = 45
+PUSH_RETRY_SECONDS = 15 * 60
 
 
 def run(*args: str) -> subprocess.CompletedProcess:
@@ -43,6 +43,15 @@ def load_state() -> dict:
 
 def save_state(state: dict) -> None:
     STATE_FILE.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
+
+
+def parse_dt(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        return None
 
 
 def pid_is_running(pid: int) -> bool:
@@ -70,9 +79,7 @@ def acquire_lock() -> None:
         except (OSError, ValueError):
             old_pid = -1
         if pid_is_running(old_pid):
-            raise SystemExit(
-                f"Codeforces watcher is already running (PID {old_pid})."
-            )
+            raise SystemExit(f"Codeforces watcher is already running (PID {old_pid}).")
     LOCK_FILE.write_text(str(os.getpid()), encoding="utf-8")
 
 
@@ -140,8 +147,6 @@ def iter_pending_codeforces() -> list[tuple[Path, Path, dict, tuple[int, str]]]:
         seen_sources.add(key)
 
         _, _, destination = detect_destination(metadata, source)
-        # Once a problem is already in its final Codeforces folder, the watcher
-        # has nothing else to do even though CPH metadata remains available.
         if normalize_path(source) == normalize_path(destination):
             continue
 
@@ -182,6 +187,69 @@ def archive_accepted(source: Path, prob_path: Path, metadata: dict, accepted_at:
         print(f"No commit created for {problem_label}; it may already be tracked.", flush=True)
 
 
+def most_recent_schedule(now: datetime, weekday: int, hour: int, minute: int) -> datetime:
+    days_back = (now.weekday() - weekday) % 7
+    scheduled = (now - timedelta(days=days_back)).replace(
+        hour=hour, minute=minute, second=0, microsecond=0
+    )
+    if scheduled > now:
+        scheduled -= timedelta(days=7)
+    return scheduled
+
+
+def maybe_weekly_push(config: dict, state: dict) -> None:
+    weekly = config.get("weekly_push", {})
+    if not isinstance(weekly, dict) or not weekly.get("enabled"):
+        return
+
+    try:
+        weekday = int(weekly.get("weekday", 6))
+        hour = int(weekly.get("hour", 20))
+        minute = int(weekly.get("minute", 0))
+    except (TypeError, ValueError):
+        return
+
+    now = datetime.now().astimezone()
+    scheduled = most_recent_schedule(now, weekday, hour, minute)
+    last_success = parse_dt(state.get("last_weekly_push"))
+    if last_success is not None and last_success.astimezone() >= scheduled:
+        return
+
+    last_attempt = parse_dt(state.get("last_weekly_push_attempt"))
+    if last_attempt is not None and (now - last_attempt.astimezone()).total_seconds() < PUSH_RETRY_SECONDS:
+        return
+
+    state["last_weekly_push_attempt"] = now.isoformat()
+    save_state(state)
+
+    try:
+        branch = run("git", "branch", "--show-current").stdout.strip()
+        if branch != "main":
+            print(f"Weekly push postponed: current branch is '{branch}', not main.", flush=True)
+            return
+
+        run("git", "fetch", "origin", "main")
+        behind = int(run("git", "rev-list", "--count", "HEAD..origin/main").stdout.strip() or "0")
+        if behind:
+            print(
+                f"Weekly push postponed: local main is behind origin/main by {behind} commit(s).",
+                flush=True,
+            )
+            return
+
+        pending = int(run("git", "rev-list", "--count", "origin/main..HEAD").stdout.strip() or "0")
+        if pending:
+            subprocess.run(["git", "push", "origin", "main"], cwd=ROOT, check=True)
+            print(f"Weekly push completed: {pending} commit(s) published.", flush=True)
+        else:
+            print("Weekly push check: no pending commits.", flush=True)
+
+        state["last_weekly_push"] = now.isoformat()
+        save_state(state)
+    except subprocess.CalledProcessError as exc:
+        print(f"Weekly push failed and will be retried later: {exc}", flush=True)
+
+
 def main() -> None:
     config = load_config()
     handle = str(config.get("codeforces_handle", "")).strip()
@@ -192,11 +260,15 @@ def main() -> None:
         )
 
     acquire_lock()
+    state = load_state()
     print(f"Codeforces Accepted watcher started for {handle}.", flush=True)
-    print(f"Polling every {POLL_SECONDS} seconds. Commits stay local until the weekly push.", flush=True)
+    print(f"Polling every {POLL_SECONDS} seconds. Accepted solutions are committed locally.", flush=True)
 
     try:
         while True:
+            config = load_config()
+            handle = str(config.get("codeforces_handle", handle)).strip() or handle
+
             try:
                 pending = iter_pending_codeforces()
                 if pending:
@@ -209,6 +281,11 @@ def main() -> None:
                 print(f"Codeforces API temporarily unavailable: {exc}", flush=True)
             except Exception as exc:
                 print(f"Watcher warning: {exc}", flush=True)
+
+            try:
+                maybe_weekly_push(config, state)
+            except Exception as exc:
+                print(f"Weekly push warning: {exc}", flush=True)
 
             time.sleep(POLL_SECONDS)
     except KeyboardInterrupt:
