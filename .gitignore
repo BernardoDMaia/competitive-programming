@@ -1,4 +1,7 @@
 .cpconfig.json
 .cp-import-plan.json
+**/.cph/
+*.exe
+*.out
 __pycache__/
 *.pyc

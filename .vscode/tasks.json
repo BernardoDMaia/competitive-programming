@@ -10,6 +10,22 @@
       "problemMatcher": []
     },
     {
+      "label": "CP: Finish current problem",
+      "type": "shell",
+      "command": "python",
+      "args": ["${workspaceFolder}/tools/finish_current_problem.py", "${file}"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": []
+    },
+    {
+      "label": "CP: Finish current problem and push",
+      "type": "shell",
+      "command": "python",
+      "args": ["${workspaceFolder}/tools/finish_current_problem.py", "${file}", "--push"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": []
+    },
+    {
       "label": "CP: Configure historical folders",
       "type": "shell",
       "command": "python",
