@@ -13,26 +13,62 @@ Solutions are organized by source:
 - `AtCoder/`
 - `Beecrowd/`
 - `ICPC/`
-- `Study/USACO-Guide/` for unresolved study material that came from USACO Guide rather than a confirmed platform
+- `SPOJ/`
+- `Kattis/`
+- `Study/USACO-Guide/` for study material whose original platform is not confirmed
 
-## VS Code workflow
+## VS Code + Competitive Companion + CPH workflow
 
-This repository includes local automation in `tools/` and VS Code tasks in `.vscode/tasks.json`.
+This repository is configured to work with **Competitive Companion** in the browser and **Competitive Programming Helper (CPH)** in VS Code.
 
 ### Daily workflow
 
-1. Solve a problem locally.
-2. Confirm the solution was accepted.
-3. Run **Tasks: Run Task** in VS Code.
-4. Choose `CP: Archive accepted solution` or `CP: Archive and push accepted solution`.
-5. Inform the source platform, problem identifier and solution file.
-6. The script copies the solution into the correct folder and creates a standardized Git commit.
+1. Open the problem in the browser.
+2. Send it with Competitive Companion.
+3. CPH creates the temporary source file in the workspace and loads the sample tests.
+4. Solve and test with CPH (`Ctrl+Alt+B`).
+5. After the solution is accepted, keep that source file active and run:
+   - `CP: Finish current problem`, or
+   - `CP: Finish current problem and push`.
+6. The script reads the CPH `.prob` metadata, detects the platform and problem, moves the source to the correct folder, preserves the CPH metadata for the new path, creates a standardized Git commit and optionally pushes it.
 
-For Codeforces, configure your handle once with `CP: Configure Codeforces handle`. When a matching Accepted submission is found, its real submission timestamp is used as the Git author and committer date.
+Examples of automatic destinations:
 
-### Multi-folder historical import
+```text
+Codeforces/2257/2257F2.cpp
+AtCoder/ABC463/D.cpp
+CSES/1076-Sliding-Window-Median.cpp
+USACO/2016-January-Gold/lights-out.cpp
+Beecrowd/1001.cpp
+SPOJ/GCDEX.cpp
+```
 
-Old solutions do not need to be manually reorganized first. Configure all source folders once with:
+### Commit dates
+
+- **Codeforces:** the script requires an Accepted submission for the configured handle and uses the timestamp of the first Accepted submission.
+- **Other platforms:** the source file modification timestamp is used.
+
+Configure the Codeforces handle once with:
+
+- `CP: Configure Codeforces handle`
+
+### Commit convention
+
+Examples:
+
+```text
+solve(codeforces): 2257F2
+solve(atcoder): ABC463-D
+solve(cses): 1076
+solve(usaco): 832
+solve(spoj): GCDEX
+```
+
+## Historical solutions
+
+Older folders can still be imported without manual reorganization.
+
+Configure the folders once with:
 
 - `CP: Configure historical folders`
 
@@ -41,36 +77,12 @@ Then run:
 - `CP: Preview all historical solutions`
 - `CP: Import previewed historical solutions`
 
-The scanner combines multiple folder trees while deliberately ignoring the name of each root folder. This means a root named `Treinamento Codeforces` can safely contain AtCoder, CSES, ICPC, USACO Guide and other material.
+The scanner combines multiple folder trees, detects platforms and contests when possible, separates study material conservatively, detects duplicates, and previews everything before creating commits.
 
-Recognition uses explicit subfolders, contest names, Codeforces IDs, exact title matches against the user's Accepted Codeforces history, the public CSES problem catalog, and conservative heuristics for contest files such as `A.cpp` or `B.cpp`.
-
-Every candidate receives a confidence/status label:
-
-- `HIGH` — reliable match;
-- `MEDIUM` — useful but should be reviewed;
-- `UNRESOLVED` — not imported automatically;
-- `DUPLICATE` — identical source already found in another configured folder;
-- `ALREADY-TRACKED` — identical source code is already in this repository.
-
-Preview never creates commits. The importer only acts on the saved preview plan and asks for explicit confirmation first.
-
-For dates:
+For historical dates:
 
 - **Codeforces:** matched problems use the real first-Accepted timestamp from the Codeforces API.
-- **Other platforms:** the local file modification timestamp is used as a clearly identified fallback unless a better source is available.
-
-### Commit convention
-
-Examples:
-
-```text
-solve(codeforces): 2060A
-solve(cses): 1076
-solve(usaco): Lights Out
-solve(icpc): A
-add(template): dijkstra
-```
+- **Other platforms:** the local file modification timestamp is used as a fallback.
 
 ## Featured solution
 
@@ -80,4 +92,4 @@ My solution for **USACO 2016 January Gold — Problem 3: Lights Out**. The appro
 
 ## Notes
 
-This repository is meant to be a technical record of solved problems and study progress. Problem statements belong to their respective platforms; only my own source code and notes are stored here.
+This repository is a technical record of solved problems and study progress. Problem statements belong to their respective platforms; only my own source code, templates and notes are stored here.
