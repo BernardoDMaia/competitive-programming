@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_FILE = ROOT / ".cpconfig.json"
+STATE_FILE = ROOT / ".cp-watcher-state.json"
 
 DAYS = {
     "mon": 0, "monday": 0, "segunda": 0,
@@ -17,11 +19,11 @@ DAYS = {
 }
 
 
-def load_config() -> dict:
-    if not CONFIG_FILE.is_file():
+def load_json(path: Path) -> dict:
+    if not path.is_file():
         return {}
     try:
-        return json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+        return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return {}
 
@@ -40,7 +42,7 @@ def main() -> None:
     except ValueError:
         raise SystemExit("Invalid time. Use HH:MM, for example 20:00.")
 
-    config = load_config()
+    config = load_json(CONFIG_FILE)
     config["weekly_push"] = {
         "enabled": True,
         "weekday": DAYS[day_raw],
@@ -53,7 +55,14 @@ def main() -> None:
         encoding="utf-8",
     )
 
+    # Treat configuration time as the baseline so enabling the feature does not
+    # immediately publish commits because of a schedule occurrence from last week.
+    state = load_json(STATE_FILE)
+    state["last_weekly_push"] = datetime.now().astimezone().isoformat()
+    STATE_FILE.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
+
     print(f"Weekly push configured for {day_raw} at {hour:02d}:{minute:02d}.")
+    print("The first automatic push will happen at the next scheduled occurrence.")
     print("The Codeforces watcher performs the push when this workspace is open.")
     print("If VS Code was closed at that time, it pushes on the next workspace opening.")
 
