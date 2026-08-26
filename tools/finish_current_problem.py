@@ -220,12 +220,27 @@ def relative_if_inside(path: Path) -> Path | None:
         return None
 
 
+def git_path_is_tracked(relative: Path) -> bool:
+    result = subprocess.run(
+        ["git", "ls-files", "--error-unmatch", "--", str(relative)],
+        cwd=ROOT,
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    return result.returncode == 0
+
+
 def git_commit_move(source: Path, destination: Path, message: str, when: datetime) -> bool:
     paths: list[str] = []
     source_rel = relative_if_inside(source)
     dest_rel = relative_if_inside(destination)
 
-    if source_rel is not None:
+    # After shutil.move(), a temporary CPH source often no longer exists and was
+    # never tracked by Git. Passing that vanished untracked path to `git add`
+    # makes Git fail with "pathspec did not match any files". Include the old
+    # path only when it still exists or the index already knows about it.
+    if source_rel is not None and (source.exists() or git_path_is_tracked(source_rel)):
         paths.append(str(source_rel))
     if dest_rel is not None and str(dest_rel) not in paths:
         paths.append(str(dest_rel))

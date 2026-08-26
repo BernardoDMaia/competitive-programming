@@ -117,6 +117,21 @@ def fetch_accepted(handle: str) -> dict[tuple[int, str], datetime]:
     return accepted
 
 
+def git_path_has_changes(path: Path) -> bool:
+    try:
+        relative = path.resolve().relative_to(ROOT.resolve())
+    except ValueError:
+        return False
+    result = subprocess.run(
+        ["git", "status", "--porcelain", "--", str(relative)],
+        cwd=ROOT,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    return bool(result.stdout.strip())
+
+
 def iter_pending_codeforces() -> list[tuple[Path, Path, dict, tuple[int, str]]]:
     pending: list[tuple[Path, Path, dict, tuple[int, str]]] = []
     seen_sources: set[str] = set()
@@ -148,7 +163,12 @@ def iter_pending_codeforces() -> list[tuple[Path, Path, dict, tuple[int, str]]]:
 
         _, _, destination = detect_destination(metadata, source)
         if normalize_path(source) == normalize_path(destination):
-            continue
+            # Normally this means the problem was already archived. If the
+            # previous run moved it but Git commit failed, however, the final
+            # file is still untracked/dirty. Keep it pending so the watcher can
+            # repair the missing commit automatically.
+            if not git_path_has_changes(source):
+                continue
 
         pending.append((source, prob_path, metadata, cf))
 
@@ -158,6 +178,20 @@ def iter_pending_codeforces() -> list[tuple[Path, Path, dict, tuple[int, str]]]:
 def archive_accepted(source: Path, prob_path: Path, metadata: dict, accepted_at: datetime) -> None:
     platform, problem_label, destination = detect_destination(metadata, source)
     if platform != "Codeforces":
+        return
+
+    message = f"solve(codeforces): {problem_label}"
+
+    # Self-heal an interrupted previous archive: the source may already be at
+    # the final path while still being untracked because staging/commit failed.
+    if normalize_path(source) == normalize_path(destination):
+        if git_path_has_changes(destination):
+            if git_commit_move(source, destination, message, accepted_at):
+                print(
+                    f"[{datetime.now().astimezone().strftime('%H:%M:%S')}] "
+                    f"Recovered missing commit -> {destination.relative_to(ROOT)} | {message}",
+                    flush=True,
+                )
         return
 
     destination, already_same = choose_nonconflicting_destination(destination, source)
@@ -175,7 +209,6 @@ def archive_accepted(source: Path, prob_path: Path, metadata: dict, accepted_at:
         destination = source
 
     move_cph_metadata(metadata, prob_path, destination)
-    message = f"solve(codeforces): {problem_label}"
 
     if git_commit_move(original_source, destination, message, accepted_at):
         print(
