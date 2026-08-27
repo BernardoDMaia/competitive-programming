@@ -45,7 +45,16 @@ def main() -> None:
             "Codeforces Accepted solutions are handled by the automatic workflow."
         )
 
-    destination, already_same = choose_nonconflicting_destination(destination, source)
+    # If CPH already created the file exactly where our organizer wants it,
+    # that does NOT mean it has already been archived in Git. In this case we
+    # must still stage and commit the file when the user confirms Accepted.
+    source_is_destination = normalize_path(source) == normalize_path(destination)
+    if source_is_destination:
+        already_same = False
+        destination = source
+    else:
+        destination, already_same = choose_nonconflicting_destination(destination, source)
+
     accepted_at = datetime.now(timezone.utc)
 
     print("\nManual Accepted confirmation")
@@ -77,7 +86,10 @@ def main() -> None:
     message = f"solve({platform_label}): {problem_label}"
 
     if not git_commit_move(original_source, destination, message, accepted_at):
-        print("No commit was created (the solution may already be tracked unchanged).")
+        print(
+            "No commit was created. The solution is already committed unchanged, "
+            "or there are no Git changes for this file."
+        )
         return
 
     print(f"\nAccepted solution committed locally: {message}")
